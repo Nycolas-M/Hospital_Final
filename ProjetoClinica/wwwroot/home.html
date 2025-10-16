@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Início - Clínica</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f2f6fa;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #007bff;
+      color: white;
+      text-align: center;
+      padding: 15px 10px;
+      font-size: 1.2em;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .container {
+      padding: 20px;
+      max-width: 1000px;
+      margin: auto;
+    }
+    .info {
+      background: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    h2 {
+      color: #007bff;
+      margin-bottom: 10px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+    }
+    .btn-primary {
+      background-color: #007bff;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+    .btn-success {
+      background-color: #28a745;
+      color: white;
+    }
+    .btn-success:hover {
+      background-color: #218838;
+    }
+    .btn-danger {
+      background-color: #dc3545;
+      color: white;
+    }
+    .btn-danger:hover {
+      background-color: #c82333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    th, td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    tr:hover {
+      background-color: #f8f9fa;
+    }
+    .status-agendada { color: #ffc107; font-weight: bold; }
+    .status-concluida { color: #28a745; font-weight: bold; }
+    .status-cancelada { color: #dc3545; font-weight: bold; }
+    .status-confirmada { color: #17a2b8; font-weight: bold; }
+
+    @media (max-width: 768px) {
+      table, th, td {
+        font-size: 14px;
+      }
+      .btn-group {
+        flex-direction: column;
+      }
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Sistema de Consultas Médicas
+  </header>
+
+  <div class="container">
+    <div class="info">
+      <h2>Bem-vindo(a), <span id="nomeUsuario"></span></h2>
+      <p>Tipo de usuário: <b><span id="tipoUsuario"></span></b></p>
+      <div class="btn-group">
+        <button class="btn-danger" onclick="logout()">Sair</button>
+        <button class="btn-success" onclick="novaConsulta()">Nova Consulta</button>
+        <button class="btn-primary" onclick="carregarConsultas()">Atualizar Lista</button>
+      </div>
+    </div>
+
+    <h2>Consultas Agendadas</h2>
+    <table id="tabelaConsultas">
+      <thead>
+        <tr>
+          <th>Paciente</th>
+          <th>Médico</th>
+          <th>Data</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    const nomeEl = document.getElementById("nomeUsuario");
+    const tipoEl = document.getElementById("tipoUsuario");
+    const tabelaBody = document.querySelector("#tabelaConsultas tbody");
+
+    if (!usuario) {
+      window.location.href = "/index.html";
+    } else {
+      nomeEl.textContent = usuario.nome;
+      tipoEl.textContent = usuario.tipo;
+      carregarConsultas();
+    }
+
+    async function carregarConsultas() {
+      try {
+        const resp = await fetch("/api/consultas");
+        if (!resp.ok) throw new Error("Erro ao carregar consultas");
+        const dados = await resp.json();
+        tabelaBody.innerHTML = "";
+        
+        dados.forEach(c => {
+          const row = document.createElement("tr");
+          const statusClass = `status-${c.status.toLowerCase()}`;
+          
+          row.innerHTML = `
+            <td>${c.paciente}</td>
+            <td>${c.medico}</td>
+            <td>${new Date(c.dataConsulta).toLocaleString("pt-BR")}</td>
+            <td class="${statusClass}">${c.status}</td>
+            <td>
+              <button class="btn-primary" onclick="editarConsulta(${c.id})">Editar</button>
+              <button class="btn-danger" onclick="cancelarConsulta(${c.id})">Cancelar</button>
+            </td>
+          `;
+          tabelaBody.appendChild(row);
+        });
+      } catch (error) {
+        tabelaBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: red;">Erro ao carregar dados.</td></tr>`;
+      }
+    }
+
+    function novaConsulta() {
+      window.location.href = "/nova-consulta.html";
+    }
+
+    function editarConsulta(id) {
+      alert(`Editar consulta ${id} - Funcionalidade em desenvolvimento`);
+    }
+
+    async function cancelarConsulta(id) {
+      if (confirm("Tem certeza que deseja cancelar esta consulta?")) {
+        try {
+          const resp = await fetch(`/api/consultas/${id}`, {
+            method: "DELETE"
+          });
+          
+          if (resp.ok) {
+            alert("Consulta cancelada com sucesso!");
+            carregarConsultas();
+          } else {
+            alert("Erro ao cancelar consulta.");
+          }
+        } catch (error) {
+          alert("Erro de conexão.");
+        }
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem("usuario");
+      window.location.href = "/index.html";
+    }
+
+    // Atualizar a cada 30 segundos
+    setInterval(carregarConsultas, 30000);
+  </script>
+</body>
+</html>

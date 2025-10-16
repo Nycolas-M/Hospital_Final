@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Clínica</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(120deg, #007BFF, #00C9A7);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0;
+    }
+    .login-container {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      width: 90%;
+      max-width: 350px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #007BFF;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background-color: #007BFF;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .error {
+      color: red;
+      text-align: center;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h2>Entrar</h2>
+    <input type="email" id="email" placeholder="E-mail">
+    <input type="password" id="senha" placeholder="Senha">
+    <button onclick="login()">Acessar</button>
+    <p id="msg" class="error"></p>
+  </div>
+
+  <script>
+    async function login() {
+      const email = document.getElementById("email").value;
+      const senha = document.getElementById("senha").value;
+      const msg = document.getElementById("msg");
+
+      if (!email || !senha) {
+        msg.textContent = "Preencha todos os campos.";
+        return;
+      }
+
+      try {
+        const resposta = await fetch("/api/login", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ email, senha })
+        });
+
+        if (resposta.ok) {
+          const usuario = await resposta.json();
+          localStorage.setItem("usuario", JSON.stringify(usuario));
+          window.location.href = "/home.html";
+        } else {
+          msg.textContent = "E-mail ou senha incorretos.";
+        }
+      } catch (error) {
+        msg.textContent = "Erro de conexão. Tente novamente.";
+      }
+    }
+
+    // Enter key support
+    document.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        login();
+      }
+    });
+  </script>
+</body>
+</html>
