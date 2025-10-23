@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nova Consulta - Clínica</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f2f6fa;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #007bff;
+      color: white;
+      text-align: center;
+      padding: 15px 10px;
+      font-size: 1.2em;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .container {
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    h2 {
+      color: #007bff;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #333;
+    }
+    select, input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      transition: border-color 0.3s;
+    }
+    select:focus, input:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+    }
+    .btn-group {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+    }
+    button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+    .btn-primary {
+      background-color: #007bff;
+      color: white;
+    }
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+    .btn-secondary {
+      background-color: #6c757d;
+      color: white;
+    }
+    .btn-secondary:hover {
+      background-color: #545b62;
+    }
+    .message {
+      padding: 12px;
+      border-radius: 5px;
+      margin-top: 15px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .loading {
+      text-align: center;
+      color: #007bff;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Nova Consulta - Sistema Clínica
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>📅 Agendar Nova Consulta</h2>
+      
+      <div class="form-group">
+        <label for="paciente">👤 Paciente:</label>
+        <select id="paciente" required>
+          <option value="">Selecione um paciente</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="medico">👨‍⚕️ Médico:</label>
+        <select id="medico" required>
+          <option value="">Selecione um médico</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="dataConsulta">📅 Data e Hora:</label>
+        <input type="datetime-local" id="dataConsulta" required>
+      </div>
+
+      <div class="form-group">
+        <label for="status">📊 Status:</label>
+        <select id="status" required>
+          <option value="Agendada">Agendada</option>
+          <option value="Confirmada">Confirmada</option>
+          <option value="Cancelada">Cancelada</option>
+          <option value="Concluída">Concluída</option>
+        </select>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-secondary" onclick="voltar()">↩️ Voltar</button>
+        <button class="btn-primary" onclick="agendarConsulta()">✅ Agendar Consulta</button>
+      </div>
+
+      <div id="message"></div>
+      <div id="loading" class="loading" style="display: none;">Carregando...</div>
+    </div>
+  </div>
+
+  <script>
+    // Verificar se usuário está logado
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuario) {
+      window.location.href = "/index.html";
+    }
+
+    // Carregar dados ao iniciar
+    document.addEventListener('DOMContentLoaded', function() {
+      carregarPacientes();
+      carregarMedicos();
+      
+      // Definir data mínima como hoje
+      const agora = new Date();
+      const dataMinima = new Date(agora.getTime() - (agora.getTimezoneOffset() * 60000))
+                          .toISOString()
+                          .slice(0, 16);
+      document.getElementById('dataConsulta').min = dataMinima;
+    });
+
+    async function carregarPacientes() {
+      mostrarLoading(true);
+      try {
+        const resp = await fetch('/api/pacientes');
+        if (!resp.ok) throw new Error('Erro ao carregar pacientes');
+        const pacientes = await resp.json();
+        
+        const select = document.getElementById('paciente');
+        select.innerHTML = '<option value="">Selecione um paciente</option>';
+        pacientes.forEach(paciente => {
+          const option = document.createElement('option');
+          option.value = paciente.id;
+          option.textContent = paciente.nome;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        mostrarMensagem('Erro ao carregar pacientes', 'error');
+      } finally {
+        mostrarLoading(false);
+      }
+    }
+
+    async function carregarMedicos() {
+      mostrarLoading(true);
+      try {
+        const resp = await fetch('/api/medicos');
+        if (!resp.ok) throw new Error('Erro ao carregar médicos');
+        const medicos = await resp.json();
+        
+        const select = document.getElementById('medico');
+        select.innerHTML = '<option value="">Selecione um médico</option>';
+        medicos.forEach(medico => {
+          const option = document.createElement('option');
+          option.value = medico.id;
+          option.textContent = medico.nome;
+          select.appendChild(option);
+        });
+      } catch (error) {
+        mostrarMensagem('Erro ao carregar médicos', 'error');
+      } finally {
+        mostrarLoading(false);
+      }
+    }
+
+    async function agendarConsulta() {
+      const pacienteId = document.getElementById('paciente').value;
+      const medicoId = document.getElementById('medico').value;
+      const dataConsulta = document.getElementById('dataConsulta').value;
+      const status = document.getElementById('status').value;
+
+      if (!pacienteId || !medicoId || !dataConsulta || !status) {
+        mostrarMensagem('❌ Preencha todos os campos', 'error');
+        return;
+      }
+
+      // Validar data futura
+      const dataSelecionada = new Date(dataConsulta);
+      const agora = new Date();
+      if (dataSelecionada <= agora) {
+        mostrarMensagem('❌ Selecione uma data futura', 'error');
+        return;
+      }
+
+      mostrarLoading(true);
+      try {
+        const resposta = await fetch('/api/consultas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            pacienteId: parseInt(pacienteId),
+            medicoId: parseInt(medicoId),
+            dataConsulta: dataConsulta,
+            status: status
+          })
+        });
+
+        if (resposta.ok) {
+          mostrarMensagem('✅ Consulta agendada com sucesso!', 'success');
+          limparFormulario();
+        } else {
+          const erro = await resposta.json();
+          mostrarMensagem(`❌ ${erro.message || 'Erro ao agendar consulta'}`, 'error');
+        }
+      } catch (error) {
+        mostrarMensagem('❌ Erro de conexão com o servidor', 'error');
+      } finally {
+        mostrarLoading(false);
+      }
+    }
+
+    function mostrarMensagem(texto, tipo) {
+      const messageDiv = document.getElementById('message');
+      messageDiv.textContent = texto;
+      messageDiv.className = `message ${tipo}`;
+      
+      setTimeout(() => {
+        messageDiv.textContent = '';
+        messageDiv.className = 'message';
+      }, 5000);
+    }
+
+    function mostrarLoading(mostrar) {
+      document.getElementById('loading').style.display = mostrar ? 'block' : 'none';
+    }
+
+    function limparFormulario() {
+      document.getElementById('paciente').value = '';
+      document.getElementById('medico').value = '';
+      document.getElementById('dataConsulta').value = '';
+      document.getElementById('status').value = 'Agendada';
+    }
+
+    function voltar() {
+      window.location.href = '/home.html';
+    }
+
+    // Suporte a tecla Enter
+    document.addEventListener('keypress', function(event) {
+      if (event.key === 'Enter') {
+        agendarConsulta();
+      }
+    });
+  </script>
+</body>
+</html>
